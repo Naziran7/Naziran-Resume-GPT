@@ -90,7 +90,7 @@ class Settings(BaseSettings):
                 "target_session_attrs", "server_settings", "direct_tls"
             }
             clean_query = {k: v for k, v in query.items() if k in ASYNCPG_ALLOWED_PARAMS}
-            async_uri = str(url._replace(query=clean_query))
+            async_uri = url._replace(query=clean_query).render_as_string(hide_password=False)
         except Exception:
             pass
 
