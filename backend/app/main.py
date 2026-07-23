@@ -23,12 +23,18 @@ async def lifespan(app: FastAPI):
         from app.core.db import engine, Base
         import app.models  # Register all models for metadata binding
         async with engine.begin() as conn:
+            from sqlalchemy import text
             try:
-                from sqlalchemy import text
                 await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
             except Exception as e:
                 logger.warning(f"Could not enable pgvector extension: {e}")
             await conn.run_sync(Base.metadata.create_all)
+            # Ensure user_id column exists on chatbot_documents if table was created previously without it
+            try:
+                await conn.execute(text("ALTER TABLE chatbot_documents ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE;"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_chatbot_documents_user_id ON chatbot_documents(user_id);"))
+            except Exception as e:
+                logger.warning(f"Could not auto-migrate chatbot_documents.user_id column: {e}")
         logger.info("Database tables verified and initialized successfully.")
     except Exception as e:
         logger.error(f"Error initializing database schema on startup: {e}")

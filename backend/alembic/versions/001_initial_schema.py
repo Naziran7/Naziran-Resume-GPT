@@ -183,15 +183,18 @@ def upgrade() -> None:
     op.create_table(
         'chatbot_documents',
         sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=True),
         sa.Column('file_name', sa.String(length=255), nullable=False),
         sa.Column('file_url', sa.String(length=1024), nullable=False),
         sa.Column('raw_text', sa.Text(), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_chatbot_documents_id'), 'chatbot_documents', ['id'], unique=False)
+    op.create_index(op.f('ix_chatbot_documents_user_id'), 'chatbot_documents', ['user_id'], unique=False)
 
     # 12. Create chatbot_document_chunks table (Vector Chunks)
     op.create_table(
