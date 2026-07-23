@@ -1,3 +1,5 @@
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -9,8 +11,28 @@ from app.core.exceptions import setup_exception_handlers
 from app.core.limiter import limiter
 from app.api.v1.router import api_router
 
+logger = logging.getLogger(__name__)
+
 # Setup logging configuration on startup
 setup_logging()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup table creation and resource cleanup."""
+    try:
+        from app.core.db import engine, Base
+        import app.models  # Register all models for metadata binding
+        async with engine.begin() as conn:
+            try:
+                from sqlalchemy import text
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            except Exception as e:
+                logger.warning(f"Could not enable pgvector extension: {e}")
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables verified and initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing database schema on startup: {e}")
+    yield
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -20,6 +42,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan,
 )
 
 # Connect slowapi rate limiter to app state and register its exception handler
