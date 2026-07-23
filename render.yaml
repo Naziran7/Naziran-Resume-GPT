@@ -1,0 +1,40 @@
+services:
+  # FastAPI Backend Web Service
+  - type: web
+    name: nazirangpt-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nazirangpt-db
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          name: nazirangpt-redis
+          type: redis
+          property: host
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false # Prompts user to securely input key in Render Dashboard
+      - key: RESEND_API_KEY
+        sync: false # Prompts user to securely input key in Render Dashboard
+      - key: BACKEND_CORS_ORIGINS
+        value: "*" # Or input specific Vercel client domains, comma-separated
+
+  # Managed Redis Cache
+  - type: redis
+    name: nazirangpt-redis
+    plan: free
+    ipAllowList: [] # Access restricted internally to render services only
+
+databases:
+  # Managed PostgreSQL with pgvector (Render provisions pgvector on all standard DBs)
+  - name: nazirangpt-db
+    plan: free
+    postgresMajorVersion: 16
