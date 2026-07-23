@@ -71,15 +71,26 @@ class Settings(BaseSettings):
         else:
             async_uri = sync_uri
 
-        # Fix asyncpg sslmode incompatibility by translating sslmode query param to ssl
+        # Sanitize query parameters for asyncpg driver
         try:
             from sqlalchemy.engine.url import make_url
             url = make_url(async_uri)
             query = dict(url.query)
+
+            # Translate psycopg sslmode to asyncpg ssl
             if "sslmode" in query:
                 mode = query.pop("sslmode")
-                query["ssl"] = "disable" if mode == "disable" else "require"
-                async_uri = str(url._replace(query=query))
+                if mode != "disable":
+                    query["ssl"] = "require"
+
+            # Whitelist parameters accepted by asyncpg.connect()
+            ASYNCPG_ALLOWED_PARAMS = {
+                "ssl", "timeout", "command_timeout", "statement_cache_size",
+                "max_cached_statement_lifetime", "max_cacheable_statement_size",
+                "target_session_attrs", "server_settings", "direct_tls"
+            }
+            clean_query = {k: v for k, v in query.items() if k in ASYNCPG_ALLOWED_PARAMS}
+            async_uri = str(url._replace(query=clean_query))
         except Exception:
             pass
 
