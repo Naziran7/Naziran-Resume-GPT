@@ -65,10 +65,25 @@ class Settings(BaseSettings):
         sync_uri = self.sync_database_uri
         # Convert postgresql:// or postgresql+psycopg2:// to postgresql+asyncpg://
         if sync_uri.startswith("postgresql://"):
-            return sync_uri.replace("postgresql://", "postgresql+asyncpg://", 1)
+            async_uri = sync_uri.replace("postgresql://", "postgresql+asyncpg://", 1)
         elif sync_uri.startswith("postgresql+psycopg2://"):
-            return sync_uri.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
-        return sync_uri
+            async_uri = sync_uri.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+        else:
+            async_uri = sync_uri
+
+        # Fix asyncpg sslmode incompatibility by translating sslmode query param to ssl
+        try:
+            from sqlalchemy.engine.url import make_url
+            url = make_url(async_uri)
+            query = dict(url.query)
+            if "sslmode" in query:
+                mode = query.pop("sslmode")
+                query["ssl"] = "disable" if mode == "disable" else "require"
+                async_uri = str(url._replace(query=query))
+        except Exception:
+            pass
+
+        return async_uri
 
     # Redis Config (for background task rate limiting, cache, celery in future)
     REDIS_HOST: str = "localhost"
