@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { api } from "../lib/api";
+import { api, API_BASE_URL } from "../lib/api";
 import { 
   UploadCloud, FileText, Download, User, LogOut, 
   CheckCircle2, ChevronRight, AlertCircle, Sparkles, BrainCircuit, Trash2
@@ -170,7 +170,7 @@ export const Dashboard: React.FC = () => {
     } catch (err: any) {
       console.error("Error downloading report via blob, opening direct token link:", err);
       const token = localStorage.getItem("access_token");
-      window.open(`http://localhost:8000/api/v1/resumes/${id}/report?token=${token}`, "_blank");
+      window.open(`${API_BASE_URL}/resumes/${id}/report?token=${token}`, "_blank");
     }
   };
 

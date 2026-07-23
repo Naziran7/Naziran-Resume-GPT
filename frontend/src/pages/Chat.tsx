@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { api } from "../lib/api";
+import { api, API_BASE_URL } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { 
   AlertCircle, ArrowLeft, Bot, BrainCircuit, CheckCircle2, 
@@ -157,7 +157,7 @@ export const Chat: React.FC = () => {
 
     try {
       const token = localStorage.getItem("access_token");
-      const url = `${import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"}/chatbot/sessions/${activeSessionId}/stream`;
+      const url = `${API_BASE_URL}/chatbot/sessions/${activeSessionId}/stream`;
 
       const formData = new FormData();
       formData.append("content", userText);

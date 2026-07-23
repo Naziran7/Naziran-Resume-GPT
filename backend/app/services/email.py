@@ -15,7 +15,7 @@ class EmailService:
 
     async def send_password_reset_email(self, to_email: str, reset_token: str) -> bool:
         """Send a password reset email using Resend or log it to the console if not configured."""
-        reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
         
         subject = "Reset Your Password - NaziranGPT"
         html_content = f"""
